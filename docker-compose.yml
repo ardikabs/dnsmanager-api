@@ -1,0 +1,49 @@
+version: "3"
+
+networks:
+  dns-net:
+
+services:
+  redis:
+    container_name: "redis"
+    image: "redis:alpine"
+    restart: "always"
+    expose:
+      - "6379/tcp"
+    networks:
+      - dns-net
+
+  postgresdb:
+    container_name: "pgdb"
+    environment:
+      POSTGRES_PASSWORD: "issecretpassword"
+    image: "postgres:latest"
+    restart: "always"
+    ports:
+      - "5432:5432/tcp"
+    expose:
+      - "5432/tcp"
+    networks:
+      - dns-net
+    volumes:
+      - /data/pgdata/:/var/lib/postgresql/data/
+
+  dns-service:
+    container_name: "dns-service"
+    build: .
+    image: "ardikabs/dnsmanager:1.0"
+    restart: "always"
+    depends_on:
+      - redis
+      - postgresdb
+    links:
+      - postgresdb
+      - redis
+    ports:
+      - "8080:8080/tcp"
+    expose:
+      - "8080/tcp"
+    networks:
+      - dns-net
+    volumes:
+      - ./project:/project/
